@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <video id="video"
+           width="640"
+           controls></video>
+
+    <script>
+        const CMCD = {
+            br: 'Encoded Bitrate',
+            d: 'Playback duration',
+            ot: 'Object Type (a=audio, v=video, i=init, k=cryptokey, etc)',
+            tb: 'Max allowable and playable bandwidth',
+            bl: 'Buffer Length',
+            dl: 'Deadline to return object before buffering',
+            mtp: 'Measured throughput between client/server',
+            nor: 'Next Object Request',
+            nrr: 'Next Range Request',
+            su: 'Sudo? Cache bypass (ie startup, seek, etc)',
+            cid: 'Content ID',
+            pr: 'Playback rate',
+            sf: 'Streaming format (ie HLS, DASH)',
+            sid: 'Session ID',
+            st: 'Stream Type (VOD, Live)',
+            v: 'CMCD Version',
+            bs: 'Buffer Starved',
+            rtp: 'Requested Max Throughput',
+        }
+
+        const { fetch: originalFetch } = window;
+    
+        window.fetch = async (...args) => {
+            let [url, config ] = args;
+            url = new URL(url);
+            let cmcd = Object.fromEntries(
+                url.searchParams.get('CMCD')
+                    .split(',')
+                    .map(item => item.split('='))
+                    .map(([key, value]) => [`${key} (${CMCD[key]})`, value])
+            )
+
+            console.debug('shakaplayer.CMCD', url.pathname, {URI: url.pathname, ...cmcd})
+            return originalFetch(url, config);
+        };
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.7/shaka-player.compiled.debug.min.js"></script>
+
+    <script>
+        async function initApp() {
+            shaka.polyfill.installAll();
+
+            const video = document.getElementById('video');
+            window.player = new shaka.Player(video);
+            window.player.configure({
+                cmcd: {
+                    enabled: true,
+                    sessionId: 'session-abc',
+                    contentId: 'content-xyz',
+                    useHeaders: false,
+                },
+            });
+            window.player.addEventListener('error', (event) => {
+                let { error } = event;
+                console.error('Error code', error.code, 'object', error);
+            });
+            window.player.addEventListener('error', (event) => {
+                let { error } = event;
+                console.error('Error code', error.code, 'object', error);
+            });
+            await player.load(
+                'https://dash.akamaized.net/dash264/TestCases/1c/qualcomm/2/MultiRate.mpd'
+            );
+        }
+
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+  </body>
+</html>
